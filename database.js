@@ -1,27 +1,22 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { Client } = require('pg');
 
 const DB_FILE = process.env.DATABASE_PATH || path.join(__dirname, 'db.json');
+
+// Estado em memória local para sincronização síncrona
+let localDb = null;
+let pgClient = null;
 
 // Função auxiliar para gerar hash SHA256 simples
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// Carregar dados ou inicializar com dados padrão
-function loadDatabase() {
-  if (fs.existsSync(DB_FILE)) {
-    try {
-      const data = fs.readFileSync(DB_FILE, 'utf8');
-      return JSON.parse(data);
-    } catch (e) {
-      console.error('Erro ao ler banco de dados. Recriando...', e);
-    }
-  }
-
-  // Banco de dados inicial (Seed Data)
-  const db = {
+// Obter estrutura inicial padrão do banco de dados (Seed Data)
+function getDefaultDatabase() {
+  return {
     setores: [
       { id: 1, nome: 'Tecnologia', ativo: true },
       { id: 2, nome: 'Recursos Humanos', ativo: true },
@@ -110,16 +105,88 @@ function loadDatabase() {
       }
     }
   };
-
-  saveDatabase(db);
-  return db;
 }
 
+// Inicializar banco de dados remoto ou local de forma assíncrona antes do servidor Express rodar
+async function initializeDatabase() {
+  const connectionString = process.env.DATABASE_URL;
+  if (connectionString) {
+    console.log('Conectando ao banco de dados PostgreSQL remoto...');
+    pgClient = new Client({
+      connectionString,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    });
+    await pgClient.connect();
+    
+    // Criar tabela se não existir
+    await pgClient.query(`
+      CREATE TABLE IF NOT EXISTS json_db (
+        id INT PRIMARY KEY,
+        data JSONB NOT NULL
+      );
+    `);
+    
+    // Buscar dados existentes
+    const res = await pgClient.query('SELECT data FROM json_db WHERE id = 1');
+    if (res.rows.length > 0) {
+      localDb = res.rows[0].data;
+      console.log('Banco de dados carregado com sucesso do PostgreSQL remoto.');
+    } else {
+      console.log('Inicializando banco de dados com dados padrão no PostgreSQL...');
+      const seedData = getDefaultDatabase();
+      await pgClient.query('INSERT INTO json_db (id, data) VALUES (1, $1)', [JSON.stringify(seedData)]);
+      localDb = seedData;
+    }
+  } else {
+    // Modo local via arquivo JSON
+    console.log('Carregando banco de dados local via db.json...');
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        const data = fs.readFileSync(DB_FILE, 'utf8');
+        localDb = JSON.parse(data);
+      } catch (e) {
+        console.error('Erro ao ler banco de dados local. Recriando...', e);
+      }
+    }
+    if (!localDb) {
+      localDb = getDefaultDatabase();
+      saveDatabase(localDb);
+    }
+  }
+}
+
+// Carregar dados (usado de forma síncrona pelo resto da lógica do app)
+function loadDatabase() {
+  if (!localDb) {
+    // Fallback de contingência caso chamado antes da inicialização
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        localDb = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      } catch (e) {}
+    }
+    if (!localDb) {
+      localDb = getDefaultDatabase();
+    }
+  }
+  return localDb;
+}
+
+// Salvar dados
 function saveDatabase(db) {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
-  } catch (e) {
-    console.error('Erro ao salvar o banco de dados:', e);
+  localDb = db;
+  if (pgClient) {
+    // Gravação assíncrona no Postgres remoto
+    pgClient.query('UPDATE json_db SET data = $1 WHERE id = 1', [JSON.stringify(db)])
+      .catch(err => console.error('Erro ao salvar no PostgreSQL remoto:', err));
+  } else {
+    // Gravação síncrona local
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+    } catch (e) {
+      console.error('Erro ao salvar o banco de dados local:', e);
+    }
   }
 }
 
@@ -391,4 +458,4 @@ const Database = {
 // Inicializa no carregamento do arquivo
 loadDatabase();
 
-module.exports = { Database, hashPassword };
+module.exports = { Database, hashPassword, initializeDatabase };

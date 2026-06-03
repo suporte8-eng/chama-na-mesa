@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const selfsigned = require('selfsigned');
-const { Database } = require('./database');
+const { Database, initializeDatabase } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3889;
@@ -412,6 +412,9 @@ app.get('*', (req, res) => {
 
 // Configuração de HTTPS com certificado autoassinado (assíncrono) ou HTTP para ambientes de nuvem (Render, etc.)
 async function startServer() {
+  // Inicializa o banco de dados (carrega db.json local ou conecta no Postgres remoto)
+  await initializeDatabase();
+
   const useHttp = process.env.RENDER || process.env.NODE_ENV === 'production' || process.env.USE_HTTP === 'true';
 
   if (useHttp) {
