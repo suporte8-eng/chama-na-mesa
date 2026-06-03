@@ -28,7 +28,8 @@ function startServer() {
 
 function startTunnel() {
   console.log('[Sistema] Iniciando túnel de conexão segura (Localtunnel)...');
-  tunnelProcess = spawn('npx', ['-y', 'localtunnel', '--port', '3889', '--subdomain', 'chamanamesa-suporte8'], {
+  const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  tunnelProcess = spawn(npxCmd, ['-y', 'localtunnel', '--port', '3889', '--subdomain', 'chamanamesa-suporte8'], {
     cwd: __dirname,
     shell: true
   });
