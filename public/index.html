@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chama na Mesa - Organização de Conversas Presenciais</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- CSS Personalizado -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- ==================== TELA DE LOGIN ==================== -->
+  <div id="login-screen" class="auth-container active">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="logo">
+          <i class="fa-solid fa-mug-hot"></i>
+          <span>Chama na Mesa</span>
+        </div>
+        <p>Organize conversas presenciais rápidas sem interrupções</p>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">E-mail Corporativo</label>
+          <div class="input-icon">
+            <i class="fa-regular fa-envelope"></i>
+            <input type="email" id="login-email" required placeholder="Ex: ana@empresa.com.br">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="login-senha">Senha</label>
+          <div class="input-icon">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="login-senha" required placeholder="Digite sua senha">
+          </div>
+        </div>
+        <div class="auth-actions">
+          <button type="button" id="btn-forgot-password" class="btn-link">Esqueceu a senha?</button>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          Entrar <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+      <div class="auth-footer">
+        <p>Facilite o diálogo presencial de sua equipe.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== LAYOUT PRINCIPAL (DASHBOARD) ==================== -->
+  <div id="app-layout" class="layout-container">
+    
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo">
+          <i class="fa-solid fa-mug-hot"></i>
+          <span>Chama na Mesa</span>
+        </div>
+      </div>
+      <div class="header-user-info">
+        <div class="user-meta">
+          <span id="header-user-name" class="user-name">Carregando...</span>
+          <span id="header-user-badge" class="user-badge">Setor</span>
+        </div>
+        <div class="header-actions">
+          <button id="btn-admin-panel" class="btn btn-secondary btn-icon" title="Painel Admin" style="display: none;">
+            <i class="fa-solid fa-sliders"></i>
+          </button>
+          <button id="btn-logout" class="btn btn-danger btn-icon" title="Sair">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT WRAPPER -->
+    <main class="app-content">
+
+      <!-- BANNER DE AVISO DE PERMISSÃO DE NOTIFICAÇÃO -->
+      <div id="notif-permission-banner" class="alert-banner" style="display: none; background: rgba(254, 243, 199, 0.95); border: 1px solid #f59e0b; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; color: #b45309; font-size: 0.9rem; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); backdrop-filter: blur(8px);">
+        <span style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.1rem;"></i>
+          <span><strong>Notificações de Sistema Desativadas:</strong> Para que os chamados apareçam por cima de outros aplicativos e páginas web, clique no <strong>cadeado</strong> (à esquerda do endereço da página) e permita as Notificações.</span>
+        </span>
+        <button onclick="requestNotificationPermission()" class="btn btn-primary btn-sm" style="background: #f97316; border-color: #f97316; color: white; padding: 6px 12px; font-weight: bold;">Ativar</button>
+      </div>
+
+      <!-- BARRA DE AÇÕES RÁPIDAS -->
+      <section class="quick-actions-bar">
+        <button id="btn-nova-solicitacao" class="btn btn-primary">
+          <i class="fa-solid fa-plus"></i> Solicitar Conversa
+        </button>
+        <div class="view-toggles" id="view-toggles-container">
+          <button class="btn-toggle active" data-view="cards" title="Visualização em Cards">
+            <i class="fa-solid fa-grip"></i> Cards
+          </button>
+          <button class="btn-toggle" data-view="lista" title="Visualização em Lista">
+            <i class="fa-solid fa-list"></i> Lista
+          </button>
+          <button class="btn-toggle" data-view="kanban" title="Painel Kanban">
+            <i class="fa-solid fa-table-columns"></i> Kanban
+          </button>
+          <button class="btn-toggle" data-view="agenda" title="Visualização em Agenda">
+            <i class="fa-regular fa-calendar-days"></i> Agenda
+          </button>
+        </div>
+      </section>
+
+      <!-- PAINEL DE NOTIFICAÇÃO POPUP / BANNER -->
+      <div id="realtime-notification-toast" class="notification-toast">
+        <!-- Preenchido via Javascript -->
+      </div>
+
+      <!-- CONTAINER PRINCIPAL DE CONTEÚDO (SPA VIEWS) -->
+      <div class="views-wrapper">
+
+        <!-- VIEW: DASHBOARD PRINCIPAL -->
+        <div id="view-dashboard" class="app-view active">
+          
+          <!-- FILTROS (visível para quem recebe/admin) -->
+          <div class="filters-card card" id="filters-container">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-filter"></i> Filtrar Solicitações</h3>
+              <button class="btn-text-only" id="btn-clear-filters">Limpar Filtros</button>
+            </div>
+            <div class="filters-grid">
+              <div class="filter-group">
+                <label>Status</label>
+                <select id="filter-status">
+                  <option value="todos">Todos</option>
+                  <option value="Aguardando aceite">Aguardando aceite</option>
+                  <option value="Agendado">Agendado</option>
+                  <option value="Em atendimento">Em atendimento</option>
+                  <option value="Pendente">Pendente</option>
+                  <option value="Concluído">Concluído</option>
+                  <option value="Cancelado">Cancelado</option>
+                  <option value="Reagendado">Reagendado</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Período</label>
+                <select id="filter-periodo">
+                  <option value="todos">Qualquer data</option>
+                  <option value="hoje">Hoje</option>
+                  <option value="amanha">Amanhã</option>
+                  <option value="semana">Esta Semana</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Urgência</label>
+                <select id="filter-urgencia">
+                  <option value="todos">Todas</option>
+                  <option value="Pode esperar">Pode esperar</option>
+                  <option value="Hoje ainda">Hoje ainda</option>
+                  <option value="Urgente">Urgente</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Setor do Solicitante</label>
+                <select id="filter-setor">
+                  <!-- Carregado via JS -->
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Buscar por Nome</label>
+                <input type="text" id="filter-busca" placeholder="Nome do solicitante...">
+              </div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO DAS MINHAS RECEBIDAS (Para Responsáveis e Admin) -->
+          <div class="dashboard-section" id="section-recebidas">
+            <h2 class="section-title"><i class="fa-solid fa-envelope-open-text"></i> Solicitações Recebidas</h2>
+            
+            <!-- LISTA / CARDS CONTAINER -->
+            <div id="recebidas-container" class="solicitacoes-grid view-mode-cards">
+              <!-- Cards ou linhas de solicitações recebidas -->
+            </div>
+
+            <!-- KANBAN VIEW CONTAINER -->
+            <div id="kanban-view" class="kanban-board-container" style="display: none;">
+              <div class="kanban-column" data-status="Aguardando aceite">
+                <div class="kanban-column-header bg-yellow">Aguardando Aceite <span class="badge" id="count-aguardando">0</span></div>
+                <div class="kanban-cards-list"></div>
+              </div>
+              <div class="kanban-column" data-status="Agendado">
+                <div class="kanban-column-header bg-blue">Agendado <span class="badge" id="count-agendado">0</span></div>
+                <div class="kanban-cards-list"></div>
+              </div>
+              <div class="kanban-column" data-status="Em atendimento">
+                <div class="kanban-column-header bg-purple">Em Atendimento <span class="badge" id="count-atendimento">0</span></div>
+                <div class="kanban-cards-list"></div>
+              </div>
+              <div class="kanban-column" data-status="Pendente">
+                <div class="kanban-column-header bg-orange">Pendente <span class="badge" id="count-pendente">0</span></div>
+                <div class="kanban-cards-list"></div>
+              </div>
+              <div class="kanban-column" data-status="Concluído">
+                <div class="kanban-column-header bg-green">Concluído <span class="badge" id="count-concluido">0</span></div>
+                <div class="kanban-cards-list"></div>
+              </div>
+            </div>
+
+            <!-- AGENDA VIEW CONTAINER -->
+            <div id="agenda-view" class="agenda-timeline-container" style="display: none;">
+              <!-- Google Calendar Style Header -->
+              <div class="calendar-header-wrapper">
+                <div class="calendar-nav-controls">
+                  <button class="btn btn-secondary btn-icon" id="cal-prev-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                  <span id="calendar-current-label">Junho 2026</span>
+                  <button class="btn btn-secondary btn-icon" id="cal-next-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                  <button class="btn btn-secondary btn-sm" id="cal-today-btn">Hoje</button>
+                </div>
+                <div class="calendar-view-modes">
+                  <button class="btn-cal-tab active" data-cal-mode="mes">Mês</button>
+                  <button class="btn-cal-tab" data-cal-mode="semana">Semana</button>
+                  <button class="btn-cal-tab" data-cal-mode="dia">Dia</button>
+                </div>
+              </div>
+              
+              <!-- Calendar Displays -->
+              <div id="calendar-month-grid" class="calendar-month-grid">
+                <!-- Grid de Dias do Mês -->
+              </div>
+              
+              <div id="calendar-week-grid" class="calendar-week-grid" style="display:none;">
+                <!-- Grid de Semana -->
+              </div>
+
+              <div id="calendar-day-grid" class="calendar-day-grid" style="display:none;">
+                <!-- Grid de Dia -->
+              </div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO DAS MINHAS SOLICITAÇÕES ENVIADAS (Todos os usuários) -->
+          <div class="dashboard-section">
+            <h2 class="section-title"><i class="fa-solid fa-paper-plane"></i> Minhas Solicitações Enviadas</h2>
+            <div id="enviadas-container" class="solicitacoes-grid view-mode-cards">
+              <!-- Solicitações enviadas pelo usuário logado -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- VIEW: PAINEL ADMINISTRATIVO -->
+        <div id="view-admin" class="app-view">
+          <div class="admin-grid">
+            
+            <!-- ABAS DE NAVEGAÇÃO INTERNA ADMIN -->
+            <div class="admin-nav-card card">
+              <button class="btn btn-secondary btn-block active" data-tab="usuarios"><i class="fa-solid fa-users"></i> Gerenciar Usuários</button>
+              <button class="btn btn-secondary btn-block" data-tab="setores"><i class="fa-solid fa-building"></i> Gerenciar Setores</button>
+              <button class="btn btn-secondary btn-block" data-tab="relatorios"><i class="fa-solid fa-chart-pie"></i> Relatórios & Métricas</button>
+              <button class="btn btn-danger btn-block" id="btn-back-dashboard"><i class="fa-solid fa-circle-arrow-left"></i> Voltar ao Painel</button>
+            </div>
+
+            <!-- CONTEÚDO DAS ABAS ADMIN -->
+            <div class="admin-content-card card">
+              
+              <!-- ABA USUÁRIOS -->
+              <div id="tab-usuarios" class="admin-tab active">
+                <div class="admin-tab-header">
+                  <h3>Gerenciar Colaboradores</h3>
+                  <button class="btn btn-primary" id="btn-create-usuario-modal"><i class="fa-solid fa-user-plus"></i> Novo Usuário</button>
+                </div>
+                <div class="table-responsive">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Setor</th>
+                        <th>Cargo</th>
+                        <th>Perfil</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="usuarios-table-body">
+                      <!-- Carregado via JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- ABA SETORES -->
+              <div id="tab-setores" class="admin-tab">
+                <div class="admin-tab-header">
+                  <h3>Gerenciar Setores</h3>
+                  <button class="btn btn-primary" id="btn-create-setor-modal"><i class="fa-solid fa-plus"></i> Novo Setor</button>
+                </div>
+                <div class="table-responsive">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Nome do Setor</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="setores-table-body">
+                      <!-- Carregado via JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- ABA RELATÓRIOS -->
+              <div id="tab-relatorios" class="admin-tab">
+                <div class="admin-tab-header">
+                  <h3>Relatórios & Desempenho</h3>
+                  <button class="btn btn-secondary" id="btn-update-reports"><i class="fa-solid fa-arrows-rotate"></i> Atualizar</button>
+                </div>
+                
+                <div class="metrics-grid">
+                  <div class="metric-card">
+                    <div class="metric-value" id="metric-total-solicitacoes">0</div>
+                    <div class="metric-label">Total de Solicitações</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-value" id="metric-tempo-medio">0m</div>
+                    <div class="metric-label">Tempo Médio de Conclusão</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-value" id="metric-concluidas">0</div>
+                    <div class="metric-label">Concluídas</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-value" id="metric-canceladas">0</div>
+                    <div class="metric-label">Canceladas / Pendentes</div>
+                  </div>
+                </div>
+
+                <div class="reports-detailed-grid">
+                  <div class="report-block">
+                    <h4>Solicitações por Setor (Solicitante)</h4>
+                    <ul class="report-list" id="report-setores-list"></ul>
+                  </div>
+                  <div class="report-block">
+                    <h4>Assuntos mais Recorrentes</h4>
+                    <ul class="report-list" id="report-assuntos-list"></ul>
+                  </div>
+                  <div class="report-block">
+                    <h4>Atividade por Colaborador</h4>
+                    <ul class="report-list" id="report-colaboradores-list"></ul>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== MODAIS E CAIXAS DE DIÁLOGO ==================== -->
+
+  <!-- MODAL: SOLICITAR CONVERSA -->
+  <div id="modal-solicitar" class="modal">
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-comments"></i> Solicitar Conversa</h3>
+        <button class="modal-close" data-modal="modal-solicitar">&times;</button>
+      </div>
+      <form id="form-solicitar">
+        <div class="form-group">
+          <label for="solicitacao-responsavel">Com quem você deseja falar? *</label>
+          <select id="solicitacao-responsavel" required>
+            <!-- Carregado via JS -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="solicitacao-assunto">Assunto curto *</label>
+          <input type="text" id="solicitacao-assunto" required placeholder="Ex: Dúvida na Task #42, Alinhamento de Design">
+        </div>
+
+        <div class="form-group">
+          <label for="solicitacao-data-desejada">Horário desejado para a conversa (Opcional)</label>
+          <input type="datetime-local" id="solicitacao-data-desejada">
+        </div>
+
+        <div class="form-group">
+          <label>Urgência *</label>
+          <div class="radio-chips">
+            <label class="chip">
+              <input type="radio" name="urgencia" value="Pode esperar" checked>
+              <span><i class="fa-solid fa-mug-hot"></i> Pode esperar</span>
+            </label>
+            <label class="chip">
+              <input type="radio" name="urgencia" value="Hoje ainda">
+              <span><i class="fa-solid fa-hourglass-half"></i> Hoje ainda</span>
+            </label>
+            <label class="chip">
+              <input type="radio" name="urgencia" value="Urgente">
+              <span><i class="fa-solid fa-bolt"></i> Urgente</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- CAMPOS OPCIONAIS SANFONA -->
+        <details class="optional-fields">
+          <summary>Campos adicionais / opcionais</summary>
+          <div class="form-group">
+            <label for="solicitacao-descricao">Descrição / Detalhes</label>
+            <textarea id="solicitacao-descricao" rows="2" placeholder="Descreva brevemente o tema..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group col">
+              <label for="solicitacao-tempo">Tempo estimado (minutos)</label>
+              <input type="number" id="solicitacao-tempo" min="5" max="180" step="5" placeholder="Ex: 15">
+            </div>
+            <div class="form-group col">
+              <label for="solicitacao-local">Local / Mesa</label>
+              <input type="text" id="solicitacao-local" placeholder="Ex: Mesa 12 - Próximo à janela">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="solicitacao-observacao">Observação especial</label>
+            <input type="text" id="solicitacao-observacao" placeholder="Algum aviso de última hora">
+          </div>
+        </details>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-modal="modal-solicitar">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Enviar Solicitação <i class="fa-regular fa-paper-plane"></i></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALHES, ANOTAÇÕES E HISTÓRICO -->
+  <div id="modal-detalhes" class="modal">
+    <div class="modal-content modal-large glass">
+      <div class="modal-header">
+        <h3 id="detalhes-titulo">Detalhes da Conversa</h3>
+        <button class="modal-close" data-modal="modal-detalhes">&times;</button>
+      </div>
+      <div class="detalhes-grid">
+        
+        <!-- INFO GERAL -->
+        <div class="detalhes-info-col">
+          <div class="info-block">
+            <span class="label">Solicitante</span>
+            <div class="val" id="detalhes-solicitante">Carregando...</div>
+          </div>
+          <div class="info-block">
+            <span class="label">Responsável</span>
+            <div class="val" id="detalhes-responsavel">Carregando...</div>
+          </div>
+          <div class="info-block">
+            <span class="label">Urgência</span>
+            <div class="val" id="detalhes-urgencia">Carregando...</div>
+          </div>
+          <div class="info-block">
+            <span class="label">Status</span>
+            <div class="val" id="detalhes-status">Carregando...</div>
+          </div>
+          <div class="info-block" id="detalhes-horarios-block">
+            <!-- Horários de agendamento/conclusão -->
+          </div>
+          <div class="info-block" id="detalhes-local-block">
+            <!-- Local e estimativa de tempo -->
+          </div>
+          <div class="info-block" id="detalhes-descricao-block">
+            <span class="label">Descrição</span>
+            <div class="val text-box" id="detalhes-descricao">Nenhuma descrição informada.</div>
+          </div>
+          
+          <!-- BOTÕES DE AÇÃO RÁPIDA DENTRO DOS DETALHES -->
+          <div class="detalhes-ações" id="detalhes-actions-container">
+            <!-- Injetado dinamicamente dependendo das permissões e do status -->
+          </div>
+        </div>
+
+        <!-- ANOTAÇÕES E HISTÓRICO -->
+        <div class="detalhes-logs-col">
+          
+          <!-- ABA DE NAVEGAÇÃO ANOTAÇÕES VS HISTÓRICO -->
+          <div class="tab-nav">
+            <button class="tab-btn active" data-tab-detail="anotacoes">Anotações (<span id="count-anotacoes-badge">0</span>)</button>
+            <button class="tab-btn" data-tab-detail="historico">Linha do Tempo / Histórico</button>
+          </div>
+
+          <!-- SEÇÃO ANOTAÇÕES -->
+          <div id="detail-tab-anotacoes" class="detail-tab-content active">
+            <div class="anotacoes-list" id="anotacoes-list-container">
+              <!-- Comentários e anotações -->
+            </div>
+            <form id="form-adicionar-anotacao" class="anotacao-form">
+              <textarea id="anotacao-texto" required placeholder="Adicionar nova anotação..."></textarea>
+              <div class="anotacao-options">
+                <label id="anotacao-interna-label">
+                  <input type="checkbox" id="anotacao-interna-check"> Anotação interna (oculto para o solicitante)
+                </label>
+                <button type="submit" class="btn btn-secondary btn-sm">Enviar</button>
+              </div>
+              <div class="quick-notes">
+                <span>Sugestões rápidas:</span>
+                <button type="button" class="btn-quick-note">Resolvido</button>
+                <button type="button" class="btn-quick-note">Ficou pendente</button>
+                <button type="button" class="btn-quick-note">Precisa retornar</button>
+                <button type="button" class="btn-quick-note">Aguardando informação</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- SEÇÃO HISTÓRICO -->
+          <div id="detail-tab-historico" class="detail-tab-content">
+            <div class="timeline" id="historico-timeline-container">
+              <!-- Linha do tempo de alterações da solicitação -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AGENDAR / REAGENDAR -->
+  <div id="modal-agendar" class="modal">
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h3 id="agendar-modal-titulo">Agendar Conversa</h3>
+        <button class="modal-close" data-modal="modal-agendar">&times;</button>
+      </div>
+      <div class="agendamento-rapido">
+        <h4>Opções rápidas:</h4>
+        <div class="quick-times-grid">
+          <button class="btn btn-secondary btn-quick-time" data-minutos="10">Em 10 minutos</button>
+          <button class="btn btn-secondary btn-quick-time" data-minutos="30">Em 30 minutos</button>
+          <button class="btn btn-secondary btn-quick-time" data-minutos="60">Em 1 hora</button>
+          <button class="btn btn-secondary btn-quick-time" data-periodo="tarde">Hoje à tarde</button>
+          <button class="btn btn-secondary btn-quick-time" data-periodo="manha-amanha">Amanhã de manhã</button>
+        </div>
+      </div>
+      <form id="form-agendar">
+        <input type="hidden" id="agendar-solicitacao-id">
+        <input type="hidden" id="agendar-tipo"> <!-- 'agendar' ou 'reagendar' -->
+        <div class="form-group">
+          <label for="agendar-horario">Ou escolha outro horário:</label>
+          <input type="datetime-local" id="agendar-horario" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-modal="modal-agendar">Voltar</button>
+          <button type="submit" class="btn btn-primary">Confirmar Agendamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CANCELAR COM JUSTIFICATIVA -->
+  <div id="modal-cancelar" class="modal">
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h3>Justificativa de Cancelamento</h3>
+        <button class="modal-close" data-modal="modal-cancelar">&times;</button>
+      </div>
+      <form id="form-cancelar">
+        <input type="hidden" id="cancelar-solicitacao-id">
+        <div class="form-group">
+          <label for="cancelar-motivo">Por que esta conversa está sendo cancelada? *</label>
+          <textarea id="cancelar-motivo" required placeholder="Digite a justificativa para o solicitante..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-modal="modal-cancelar">Voltar</button>
+          <button type="submit" class="btn btn-danger">Confirmar Cancelamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CRIAR/EDITAR USUÁRIO (ADMIN) -->
+  <div id="modal-usuario-admin" class="modal">
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h3 id="usuario-admin-titulo">Cadastrar Usuário</h3>
+        <button class="modal-close" data-modal="modal-usuario-admin">&times;</button>
+      </div>
+      <form id="form-usuario-admin">
+        <input type="hidden" id="usuario-admin-id">
+        
+        <div class="form-group">
+          <label for="usr-nome">Nome Completo *</label>
+          <input type="text" id="usr-nome" required placeholder="Ex: Leonardo Santos">
+        </div>
+        <div class="form-group">
+          <label for="usr-email">E-mail *</label>
+          <input type="email" id="usr-email" required placeholder="Ex: leonardo@empresa.com.br">
+        </div>
+        <div class="form-group">
+          <label for="usr-senha" id="usr-senha-label">Senha *</label>
+          <input type="password" id="usr-senha" required placeholder="Defina a senha inicial">
+        </div>
+        <div class="form-row">
+          <div class="form-group col">
+            <label for="usr-setor">Setor *</label>
+            <select id="usr-setor" required>
+              <!-- Carregado via JS -->
+            </select>
+          </div>
+          <div class="form-group col">
+            <label for="usr-perfil">Perfil de Acesso *</label>
+            <select id="usr-perfil" required>
+              <option value="Comum">Usuário Comum</option>
+              <option value="Administrador">Administrador</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="usr-cargo">Cargo ou Função *</label>
+          <input type="text" id="usr-cargo" required placeholder="Ex: Líder Técnico, Analista de Marketing">
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="usr-ativo" checked> Usuário Ativo
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-modal="modal-usuario-admin">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-usuario-admin-submit">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CRIAR/EDITAR SETOR (ADMIN) -->
+  <div id="modal-setor-admin" class="modal">
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h3 id="setor-admin-titulo">Cadastrar Setor</h3>
+        <button class="modal-close" data-modal="modal-setor-admin">&times;</button>
+      </div>
+      <form id="form-setor-admin">
+        <input type="hidden" id="setor-admin-id">
+        <div class="form-group">
+          <label for="set-nome">Nome do Setor *</label>
+          <input type="text" id="set-nome" required placeholder="Ex: Sucesso do Cliente">
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="set-ativo" checked> Setor Ativo
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-modal="modal-setor-admin">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Setor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JS Principal -->
+  <script src="/js/app.js"></script>
+</body>
+</html>
